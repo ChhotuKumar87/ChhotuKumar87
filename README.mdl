@@ -1,10 +1,161 @@
-- 👋 Hi, I’m @ChhotuKumar87
-- 👀 I’m interested in ...
-- 🌱 I’m currently learning ...
-- 💞️ I’m looking to collaborate on ...
-- 📫 How to reach me ...
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import HomeScreen from './screens/HomeScreen';
+import LoginScreen from './screens/LoginScreen';
 
-<!---
-ChhotuKumar87/ChhotuKumar87 is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-You can click the Preview link to take a look at your changes.
---->
+const Stack = createStackNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Login">
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+import React, { useEffect, useState } from 'react';
+import { View, FlatList, Text } from 'react-native';
+import axios from 'axios';
+
+export default function HomeScreen() {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    axios.get('http://localhost:3000/posts')  // Backend API
+      .then(response => setPosts(response.data))
+      .catch(error => console.error(error));
+  }, []);
+
+  const renderPost = ({ item }) => (
+    <View style={{ padding: 10 }}>
+      <Text>{item.caption}</Text>
+      {/* Add image/video display here */}
+    </View>
+  );
+
+  return (
+    <FlatList
+      data={posts}
+      renderItem={renderPost}
+      keyExtractor={item => item.id}
+    />
+  );
+}import React, { useState } from 'react';
+import { View, TextInput, Button } from 'react-native';
+import axios from 'axios';
+
+export default function CreatePostScreen() {
+  const [caption, setCaption] = useState('');
+
+  const handlePost = () => {
+    axios.post('http://localhost:3000/posts', { caption, userId: 'user123' })
+      .then(() => alert('Post created!'))
+      .catch(error => console.error(error));
+  };
+
+  return (
+    <View>
+      <TextInput placeholder="Caption" value={caption} onChangeText={setCaption} />
+      <Button title="Post" onPress={handlePost} />
+    </View>
+  );
+}const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const postRoutes = require('./routes/posts');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+mongoose.connect('mongodb://localhost:27017/nexy', { useNewUrlParser: true });
+
+app.use('/posts', postRoutes);
+
+app.listen(3000, () => console.log('Server running on port 3000'));
+const mongoose = require('mongoose');
+
+const postSchema = new mongoose.Schema({
+  userId: String,
+  caption: String,
+  imageUrl: String,
+  likes: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('Post', postSchema);
+const express = require('express');
+const Post = require('../models/Post');
+
+const router = express.Router();
+
+// Get all posts (for feed)
+router.get('/', async (req, res) => {
+  const posts = await Post.find().sort({ createdAt: -1 });
+  res.json(posts);
+});
+
+// Create post
+router.post('/', async (req, res) => {
+  const newPost = new Post(req.body);
+  await newPost.save();
+  res.json(newPost);
+});
+
+module.exports = router;
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Sample data: user interactions (likes, etc.)
+data = {
+    'user': ['user1', 'user1', 'user2'],
+    'post': ['post1', 'post2', 'post1'],
+    'score': [1, 0.5, 1]  # Engagement score
+}
+df = pd.DataFrame(data)
+
+# Pivot to user-post matrix
+matrix = df.pivot_table(index='user', columns='post', values='score', fill_value=0)
+
+# Compute similarity
+similarity = cosine_similarity(matrix)
+
+# Recommend for user1: Find similar posts
+def recommend(user, matrix, similarity):
+    user_index = matrix.index.get_loc(user)
+    similar_users = similarity[user_index]
+    # Aggregate scores from similar users (simplified)
+    recommendations = matrix.T.dot(similar_users) / similar_users.sum()
+    return recommendations.sort_values(ascending=False)
+
+print(recommend('user1', matrix, similarity))
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+export default function AdminDashboard() {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    axios.get('http://localhost:3000/admin/posts')  // Protected endpoint
+      .then(response => setPosts(response.data));
+  }, []);
+
+  const deletePost = (id) => {
+    axios.delete(`http://localhost:3000/admin/posts/${id}`);
+    setPosts(posts.filter(p => p.id !== id));
+  };
+
+  return (
+    <div>
+      {posts.map(post => (
+        <div key={post.id}>
+          <p>{post.caption}</p>
+          <button onClick={() => deletePost(post.id)}>Delete</button>
+        </div>
+      ))}
+    </div>
+  );
+}
